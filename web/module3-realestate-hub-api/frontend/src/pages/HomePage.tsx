@@ -1,18 +1,21 @@
 // =============================================================================
-// PAGINA: HOME - Frontend con API REST
+// PÁGINA: HOME - Real Estate React
 // =============================================================================
-// Pagina principal que muestra la lista de propiedades con filtros.
+// Página principal que muestra la lista de propiedades con filtros.
 //
-// ## Diferencias con Module 2
-// - Usamos fetch() en lugar de localStorage
-// - Las operaciones son async/await
-// - El filtrado lo hace el backend via query params
+// ## Gestión de Estado en React 19
+// Usamos useState para el estado local de filtros y propiedades.
+// En aplicaciones más grandes, consideraríamos:
+// - Context API para estado compartido
+// - Zustand/Jotai para estado global simple
+// - TanStack Query para datos del servidor
 // =============================================================================
 
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, X } from 'lucide-react';
+import { Plus, Search, X, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -23,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PropertyCard } from '@/components/PropertyCard';
-import { filterProperties, deleteProperty, initializeWithSampleData } from '@/lib/api';
+import { propertyService } from '@/services/api';
 import type { Property, PropertyFilters } from '@/types/property';
 import {
   PROPERTY_TYPES,
@@ -33,7 +36,7 @@ import {
 } from '@/types/property';
 
 /**
- * Pagina principal con lista de propiedades y filtros.
+ * Página principal con lista de propiedades y filtros.
  */
 export function HomePage(): React.ReactElement {
   // =========================================================================
@@ -42,17 +45,23 @@ export function HomePage(): React.ReactElement {
   const [properties, setProperties] = useState<Property[]>([]);
   const [filters, setFilters] = useState<PropertyFilters>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // =========================================================================
-  // CARGAR PROPIEDADES (ASYNC)
+  // CARGAR PROPIEDADES
   // =========================================================================
   const loadProperties = useCallback(async () => {
-    setIsLoading(true);
     try {
-      const filtered = await filterProperties(filters);
-      setProperties(filtered);
-    } catch (error) {
-      console.error('Error al cargar propiedades:', error);
+      setIsLoading(true);
+      setError(null);
+      const data = await propertyService.getAll(filters);
+      setProperties(data);
+    } catch (err) {
+      console.error('Error loading properties:', err);
+      setError('Error al cargar las propiedades. Por favor intenta de nuevo.');
+      toast.error('Error de conexión', {
+        description: 'No se pudieron cargar las propiedades',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -62,20 +71,18 @@ export function HomePage(): React.ReactElement {
   // EFECTOS
   // =========================================================================
   useEffect(() => {
-    // Log de conexion con API
-    initializeWithSampleData();
+    // Debounce para búsqueda por texto
+    const timer = setTimeout(() => {
+      loadProperties();
+    }, 300);
 
-    // Cargar propiedades
-    void loadProperties();
+    return () => clearTimeout(timer);
   }, [loadProperties]);
 
   // =========================================================================
   // HANDLERS
   // =========================================================================
 
-  /**
-   * Actualiza un filtro especifico.
-   */
   const handleFilterChange = (key: keyof PropertyFilters, value: string | number): void => {
     setFilters((prev) => ({
       ...prev,
@@ -83,26 +90,25 @@ export function HomePage(): React.ReactElement {
     }));
   };
 
-  /**
-   * Limpia todos los filtros.
-   */
   const handleClearFilters = (): void => {
     setFilters({});
   };
 
-  /**
-   * Elimina una propiedad (async).
-   */
   const handleDelete = async (id: string): Promise<void> => {
-    if (window.confirm('Estas seguro de eliminar esta propiedad?')) {
-      const deleted = await deleteProperty(id);
-      if (deleted) {
-        void loadProperties();
+    if (window.confirm('¿Estás seguro de eliminar esta propiedad?')) {
+      try {
+        await propertyService.delete(id);
+        toast.success('Propiedad eliminada');
+        loadProperties();
+      } catch (err) {
+        console.error('Error deleting property:', err);
+        toast.error('Error al eliminar', {
+          description: 'No se pudo eliminar la propiedad',
+        });
       }
     }
   };
 
-  // Verificamos si hay filtros activos
   const hasFilters = Object.values(filters).some(
     (v) => v !== undefined && v !== '' && v !== 0
   );
@@ -116,7 +122,8 @@ export function HomePage(): React.ReactElement {
           <p className="text-muted-foreground">
             {isLoading
               ? 'Cargando...'
-              : `${properties.length} ${properties.length === 1 ? 'propiedad encontrada' : 'propiedades encontradas'}`}
+              : `${properties.length} ${properties.length === 1 ? 'propiedad encontrada' : 'propiedades encontradas'
+              }`}
           </p>
         </div>
 
@@ -131,18 +138,16 @@ export function HomePage(): React.ReactElement {
       {/* Filtros */}
       <div className="bg-card rounded-lg border p-4 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Busqueda por texto */}
           <div className="relative lg:col-span-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por titulo, direccion o ciudad..."
+              placeholder="Buscar por título, dirección o ciudad..."
               className="pl-10"
               value={filters.search ?? ''}
               onChange={(e) => handleFilterChange('search', e.target.value)}
             />
           </div>
 
-          {/* Tipo de propiedad */}
           <Select
             value={filters.propertyType ?? 'all'}
             onValueChange={(value) => handleFilterChange('propertyType', value)}
@@ -160,7 +165,6 @@ export function HomePage(): React.ReactElement {
             </SelectContent>
           </Select>
 
-          {/* Tipo de operacion */}
           <Select
             value={filters.operationType ?? 'all'}
             onValueChange={(value) => handleFilterChange('operationType', value)}
@@ -179,10 +183,9 @@ export function HomePage(): React.ReactElement {
           </Select>
         </div>
 
-        {/* Filtros adicionales y boton de limpiar */}
         <div className="flex flex-wrap gap-4 mt-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Precio min:</span>
+            <span className="text-sm text-muted-foreground">Precio mín:</span>
             <Input
               type="number"
               placeholder="0"
@@ -195,10 +198,10 @@ export function HomePage(): React.ReactElement {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Precio max:</span>
+            <span className="text-sm text-muted-foreground">Precio máx:</span>
             <Input
               type="number"
-              placeholder="Sin limite"
+              placeholder="∞"
               className="w-28"
               value={filters.maxPrice ?? ''}
               onChange={(e) =>
@@ -208,7 +211,7 @@ export function HomePage(): React.ReactElement {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Hab. min:</span>
+            <span className="text-sm text-muted-foreground">Hab. mín:</span>
             <Input
               type="number"
               placeholder="0"
@@ -230,10 +233,17 @@ export function HomePage(): React.ReactElement {
         </div>
       </div>
 
-      {/* Lista de propiedades */}
+      {/* Estado de Carga y Error */}
       {isLoading ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground text-lg">Cargando propiedades...</p>
+        <div className="flex justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : error ? (
+        <div className="text-center py-12 text-red-500">
+          <p>{error}</p>
+          <Button variant="outline" onClick={() => loadProperties()} className="mt-4">
+            Reintentar
+          </Button>
         </div>
       ) : properties.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

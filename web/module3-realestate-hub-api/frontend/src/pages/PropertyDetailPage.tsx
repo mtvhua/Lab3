@@ -1,21 +1,19 @@
 // =============================================================================
-// PAGINA: DETALLE DE PROPIEDAD - Frontend con API REST
+// PÁGINA: DETALLE DE PROPIEDAD - Real Estate React
 // =============================================================================
-// Pagina que muestra informacion detallada de una propiedad.
+// Página que muestra información detallada de una propiedad.
 //
-// ## Diferencias con Module 2
-// - Usamos fetch() en lugar de localStorage
-// - Las operaciones son async/await
-// - Agregamos estado de carga
+// ## useParams()
+// Hook de React Router que extrae parámetros de la URL.
+// La ruta /property/:id define un parámetro dinámico 'id'.
 // =============================================================================
 
 import type React from 'react';
-import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, Bed, Bath, Square, Calendar, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { getPropertyById, deleteProperty } from '@/lib/api';
+import { propertyService } from '@/services/api';
 import {
   PROPERTY_TYPE_LABELS,
   OPERATION_TYPE_LABELS,
@@ -26,47 +24,44 @@ import {
 import { formatPrice, formatArea } from '@/lib/utils';
 
 /**
- * Pagina de detalle de una propiedad.
+ * Página de detalle de una propiedad.
  */
 export function PropertyDetailPage(): React.ReactElement {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [property, setProperty] = useState<Property | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
+  const [property, setProperty] = React.useState<Property | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
-  // Cargar propiedad al montar
-  useEffect(() => {
-    async function loadProperty() {
-      if (!id) {
-        setIsLoading(false);
-        return;
-      }
+  React.useEffect(() => {
+    if (!id) return;
 
-      setIsLoading(true);
+    const fetchProperty = async () => {
       try {
-        const data = await getPropertyById(id);
+        setIsLoading(true);
+        const data = await propertyService.getById(id);
         setProperty(data);
-      } catch (error) {
-        console.error('Error al cargar propiedad:', error);
+      } catch (err) {
+        console.error('Error fetching property:', err);
+        setError('No se pudo cargar la propiedad');
       } finally {
         setIsLoading(false);
       }
-    }
+    };
 
-    void loadProperty();
+    fetchProperty();
   }, [id]);
 
-  // Estado de carga
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <p className="text-muted-foreground">Cargando propiedad...</p>
+      <div className="flex justify-center py-20">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   // Si no existe la propiedad, mostramos error
-  if (!property) {
+  if (error || !property) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
         <h1 className="text-2xl font-bold mb-4">Propiedad no encontrada</h1>
@@ -81,14 +76,15 @@ export function PropertyDetailPage(): React.ReactElement {
   }
 
   /**
-   * Maneja la eliminacion de la propiedad (async).
+   * Maneja la eliminación de la propiedad.
    */
   const handleDelete = async (): Promise<void> => {
-    if (window.confirm('Estas seguro de eliminar esta propiedad?')) {
-      const deleted = await deleteProperty(property.id);
-      if (deleted) {
+    if (window.confirm('¿Estás seguro de eliminar esta propiedad?')) {
+      try {
+        await propertyService.delete(property.id);
         navigate('/');
-      } else {
+      } catch (err) {
+        console.error('Error deleting:', err);
         alert('Error al eliminar la propiedad');
       }
     }
@@ -96,12 +92,12 @@ export function PropertyDetailPage(): React.ReactElement {
 
   // Imagen principal o placeholder
   const mainImage =
-    property.images[0] ??
+    property.images?.[0] ??
     `https://placehold.co/1200x600/e2e8f0/64748b?text=${encodeURIComponent(property.propertyType)}`;
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header con navegacion */}
+      {/* Header con navegación */}
       <div className="mb-6">
         <Button asChild variant="ghost" className="mb-4">
           <Link to="/">
@@ -122,18 +118,17 @@ export function PropertyDetailPage(): React.ReactElement {
               className="w-full h-[400px] object-cover"
             />
             <span
-              className={`absolute top-4 left-4 px-4 py-2 text-sm font-semibold rounded-full ${
-                property.operationType === 'venta'
-                  ? 'bg-green-500 text-white'
-                  : 'bg-blue-500 text-white'
-              }`}
+              className={`absolute top-4 left-4 px-4 py-2 text-sm font-semibold rounded-full ${property.operationType === 'venta'
+                ? 'bg-green-500 text-white'
+                : 'bg-blue-500 text-white'
+                }`}
             >
               {OPERATION_TYPE_LABELS[property.operationType]}
             </span>
           </div>
 
-          {/* Galeria de imagenes adicionales */}
-          {property.images.length > 1 && (
+          {/* Galería de imágenes adicionales */}
+          {property.images && property.images.length > 1 && (
             <div className="grid grid-cols-4 gap-2">
               {property.images.slice(1).map((img, index) => (
                 <img
@@ -146,10 +141,10 @@ export function PropertyDetailPage(): React.ReactElement {
             </div>
           )}
 
-          {/* Descripcion */}
+          {/* Descripción */}
           <Card>
             <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Descripcion</h2>
+              <h2 className="text-xl font-semibold mb-4">Descripción</h2>
               <p className="text-muted-foreground whitespace-pre-line">
                 {property.description}
               </p>
@@ -157,7 +152,7 @@ export function PropertyDetailPage(): React.ReactElement {
           </Card>
 
           {/* Amenidades */}
-          {property.amenities.length > 0 && (
+          {property.amenities && property.amenities.length > 0 && (
             <Card>
               <CardContent className="p-6">
                 <h2 className="text-xl font-semibold mb-4">Amenidades</h2>
@@ -167,7 +162,7 @@ export function PropertyDetailPage(): React.ReactElement {
                       key={amenity}
                       className="flex items-center gap-2 text-muted-foreground"
                     >
-                      <span className="text-green-500">+</span>
+                      <span className="text-green-500">✓</span>
                       {AMENITY_LABELS[amenity as Amenity]}
                     </div>
                   ))}
@@ -198,7 +193,7 @@ export function PropertyDetailPage(): React.ReactElement {
 
               <h1 className="text-xl font-semibold mb-4">{property.title}</h1>
 
-              {/* Ubicacion */}
+              {/* Ubicación */}
               <div className="flex items-start gap-2 text-muted-foreground mb-6">
                 <MapPin className="h-4 w-4 mt-1 shrink-0" />
                 <div>
@@ -207,7 +202,7 @@ export function PropertyDetailPage(): React.ReactElement {
                 </div>
               </div>
 
-              {/* Caracteristicas */}
+              {/* Características */}
               <div className="grid grid-cols-3 gap-4 py-4 border-t border-b">
                 {property.bedrooms > 0 && (
                   <div className="text-center">
@@ -220,17 +215,17 @@ export function PropertyDetailPage(): React.ReactElement {
                   <div className="text-center">
                     <Bath className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
                     <p className="font-semibold">{property.bathrooms}</p>
-                    <p className="text-xs text-muted-foreground">Banos</p>
+                    <p className="text-xs text-muted-foreground">Baños</p>
                   </div>
                 )}
                 <div className="text-center">
                   <Square className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
                   <p className="font-semibold">{formatArea(property.area)}</p>
-                  <p className="text-xs text-muted-foreground">Area</p>
+                  <p className="text-xs text-muted-foreground">Área</p>
                 </div>
               </div>
 
-              {/* Fecha de publicacion */}
+              {/* Fecha de publicación */}
               <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
                 <Calendar className="h-4 w-4" />
                 <span>

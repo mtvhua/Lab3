@@ -82,19 +82,19 @@ export const createPropertySchema = z.object({
     .min(50, 'La descripción debe tener al menos 50 caracteres')
     .max(2000, 'La descripción no puede exceder 2000 caracteres'),
 
-  // Tipo y operacion
+  // Tipo y operación
   propertyType: z.enum(PROPERTY_TYPES, {
-    error: 'Selecciona un tipo de propiedad valido',
+    error: 'Selecciona un tipo de propiedad válido',
   }),
 
   operationType: z.enum(OPERATION_TYPES, {
-    error: 'Selecciona un tipo de operacion valido',
+    error: 'Selecciona un tipo de operación válido',
   }),
 
   // Precio
   price: z
     .number({
-      error: 'El precio debe ser un numero valido',
+      error: 'El precio es requerido y debe ser un número',
     })
     .positive('El precio debe ser mayor a 0')
     .max(100_000_000, 'El precio parece demasiado alto'),
@@ -138,6 +138,23 @@ export const createPropertySchema = z.object({
  * Usamos z.infer para obtener el tipo TypeScript del esquema Zod.
  */
 export type CreatePropertyInput = z.infer<typeof createPropertySchema>;
+
+/**
+ * Input para actualizar una propiedad (Partial).
+ */
+export type UpdatePropertyInput = Partial<CreatePropertyInput>;
+
+/**
+ * Respuesta genérica de la API.
+ */
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  error?: {
+    message: string;
+    details?: unknown;
+  };
+}
 
 // =============================================================================
 // INTERFACE COMPLETA DE PROPIEDAD

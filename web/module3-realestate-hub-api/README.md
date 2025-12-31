@@ -24,7 +24,7 @@ module3-realestate-hub-api/
 │
 ├── frontend/                # React SPA que consume la API
 │   ├── src/
-│   │   ├── lib/api.ts      # Llamadas fetch a la API
+│   │   ├── services/api.ts # Llamadas fetch a la API con propertyService
 │   │   ├── pages/
 │   │   └── components/
 │   └── package.json
@@ -139,10 +139,10 @@ Frontend y backend corren en puertos separados para simular un entorno de produc
 
 ### Conectividad
 
-El frontend se conecta al backend usando la URL base definida en `frontend/src/lib/api.ts`:
+El frontend se conecta al backend usando la URL base definida en `frontend/src/services/api.ts`:
 
 ```typescript
-const API_BASE_URL = 'http://localhost:3002/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002/api';
 ```
 
 El backend tiene CORS configurado para aceptar peticiones desde el frontend:
@@ -165,7 +165,7 @@ El frontend (copia del Modulo 2) fue refactorizado para usar la API en lugar de 
 | Archivo | Antes (Modulo 2) | Despues (Modulo 3) |
 |---------|------------------|---------------------|
 | `lib/storage.ts` | localStorage sync | No usado |
-| `lib/api.ts` | No existia | fetch() async |
+| `services/api.ts` | No existia | fetch() async (Wrapper) |
 | `pages/HomePage.tsx` | `filterProperties()` sync | `await filterProperties()` async |
 | `pages/NewPropertyPage.tsx` | `createProperty()` sync | `await createProperty()` async |
 | `pages/PropertyDetailPage.tsx` | `getPropertyById()` sync | `await getPropertyById()` async |

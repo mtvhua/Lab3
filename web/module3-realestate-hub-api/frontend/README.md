@@ -1,174 +1,342 @@
-# Modulo 3 - Frontend
+# Módulo 2 - Real Estate React
 
-## Frontend React con API REST
+## Frontend Single Page Application
 
-> Portal inmobiliario que consume la API del backend Express.
+> Portal inmobiliario con React 19, Zod, React Hook Form, Tailwind CSS y Shadcn UI.
 
 ---
 
 ## Stack Tecnologico
 
-| Dependencia | Version |
-|-------------|---------|
-| React | 19.2.1 |
-| React Router DOM | 7.1.1 |
-| TypeScript | 5.9.3 |
-| Vite | 7.3.0 |
-| Tailwind CSS | 4.1.8 |
-| Zod | 4.1.9 |
-| React Hook Form | 7.54.2 |
+| Dependencia | Version | Propósito |
+|-------------|---------|-----------|
+| **React** | 19.2.1 | Biblioteca UI Core |
+| **Vite** | 6.0.0+ | Build tool & Dev Server |
+| **Tailwind CSS** | 4.1.8 | Framework de estilos (Motor v4) |
+| **Shadcn UI** | Manual | Componentes UI reutilizables |
+| **React Hook Form** | 7.54.2 | Gestión de estado de formularios |
+| **Zod** | 4.1.9 | Esquemas de validación |
+| **Sonner** | 2.0.7 | Sistema de notificaciones (Toasts) |
+| **React Router** | 7.1.1 | Enrutamiento cliente |
 
 ---
 
-## Diferencias con Modulo 2
+## Descripción del Proyecto
 
-Este frontend es una version refactorizada del Modulo 2 que:
+**Real Estate React** es una aplicación web de bienes raíces que permite listar, buscar y gestionar propiedades inmobiliarias. El proyecto implementa las últimas tecnologías frontend disponibles (React 19, Tailwind v4) para ofrecer una experiencia de desarrollo moderna y eficiente.
 
-1. **Usa fetch() en lugar de localStorage** - Todas las operaciones CRUD llaman a la API
-2. **Funciones async/await** - Las operaciones de datos son asincronas
-3. **Filtrado en el backend** - Los query params se envian al servidor
-4. **Estados de carga** - Se muestran indicadores mientras se cargan datos
+Concepts clave implementados:
 
-### Cambio principal: De localStorage a API
+1.  **Tailwind CSS v4**: Configuración nativa CSS sin `tailwind.config.js`. Las variables de tema se definen directamente en CSS usando `@theme`.
+2.  **Validación Robusta**: Implementación de un *Custom Resolver* manual para conectar Zod con React Hook Form, garantizando independencia de versiones y control total de errores.
+3.  **Componentes Shadcn UI**: Arquitectura de componentes "copy-paste" para máxima personalización.
+4.  **Estado Local & Persistencia**: Combinación de `useState` para interactividad y `localStorage` para persistencia de datos.
 
-```typescript
-// Modulo 2: localStorage (sincrono)
-export function getAllProperties(): Property[] {
-  const data = localStorage.getItem('properties');
-  return data ? JSON.parse(data) : [];
+---
+
+## Contexto Pedagógico
+
+Este módulo cubre implementaciones avanzadas de los siguientes conceptos:
+
+### 1. React 19 & Hooks Modernos
+
+Uso de los últimos hooks estables para gestión de estado y efectos:
+
+```tsx
+// Gestión eficiente de colecciones
+const [properties, setProperties] = useState<Property[]>([]);
+
+// Memorización para optimizar re-renders
+const loadProperties = useCallback(() => {
+  const filtered = filterProperties(filters);
+  setProperties(filtered);
+}, [filters]);
+```
+
+### 2. Validación Type-Safe con Custom Resolver
+
+En lugar de depender de adaptadores genéricos, implementamos una capa de validación manual que conecta Zod con React Hook Form. Esto nos da control total sobre cómo se procesan y muestran los errores.
+
+```tsx
+// Validación segura dentro del componente
+resolver: async (values) => {
+  try {
+    // Validación estricta con Zod
+    const result = createPropertySchema.safeParse(values);
+    
+    if (result.success) {
+      return { values: result.data, errors: {} };
+    }
+
+    // Mapeo manual de errores para feedback preciso
+    const errors = result.error.issues.reduce(/* lógica de mapeo */);
+    
+    return { values: {}, errors };
+  } catch (error) {
+    // Manejo de errores críticos
+    return { values: {}, errors: { root: { type: 'server', message: 'Error crítico' } } };
+  }
 }
-
-// Modulo 3: API REST (async)
-export async function getAllProperties(): Promise<Property[]> {
-  const response = await fetch('http://localhost:3002/api/properties');
-  const result = await response.json();
-  return result.data;
-}
 ```
 
-### Arquitectura
+### 3. Shadcn UI y Componentes Reutilizables
 
-```
-Frontend (React)          Backend (Express)          Database (SQLite)
-     |                          |                          |
-     |  GET /api/properties     |                          |
-     |------------------------->|                          |
-     |                          |  SELECT * FROM properties|
-     |                          |------------------------->|
-     |                          |<-------------------------|
-     |<-------------------------|                          |
-     |  { data: [...] }         |                          |
+```tsx
+// Componentes Shadcn importados directamente
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+// Uso con variantes
+<Button variant="destructive" size="lg">Eliminar</Button>
 ```
 
----
+### 4. Routing con React Router
 
-## Estructura
+```tsx
+// Definición de rutas
+<Routes>
+  <Route path="/" element={<HomePage />} />
+  <Route path="/property/:id" element={<PropertyDetailPage />} />
+</Routes>
 
+// Navegación programática
+const navigate = useNavigate();
+navigate('/property/123');
+
+// Parámetros de URL
+const { id } = useParams<{ id: string }>();
 ```
-frontend/
-├── src/
-│   ├── lib/
-│   │   ├── api.ts          # Nuevo: llamadas a la API REST
-│   │   ├── storage.ts      # Original: localStorage (no usado)
-│   │   └── utils.ts
-│   ├── pages/
-│   │   ├── HomePage.tsx    # Modificado: async operations
-│   │   ├── NewPropertyPage.tsx
-│   │   └── PropertyDetailPage.tsx
-│   └── components/
-│       ├── PropertyCard.tsx
-│       └── PropertyForm.tsx
-└── package.json
+
+### 5. Persistencia con localStorage
+
+```tsx
+// Guardando datos
+localStorage.setItem('properties', JSON.stringify(properties));
+
+// Leyendo datos
+const data = localStorage.getItem('properties');
+const properties = data ? JSON.parse(data) : [];
 ```
 
 ---
 
-## Configuracion
+## Estructura del Proyecto
+
+```
+module2-real-estate/
+├── index.html                 # Punto de entrada HTML
+├── package.json               # Dependencias
+├── tsconfig.json              # Configuración TypeScript
+├── vite.config.ts             # Configuración Vite + Tailwind v4
+├── eslint.config.js           # Reglas de linting
+├── .prettierrc                # Formato de código
+├── .gitignore                 # Archivos ignorados
+├── README.md                  # Esta documentación
+├── TECH_STACK.md              # Versiones de dependencias
+└── src/
+    ├── main.tsx               # Punto de entrada React
+    ├── App.tsx                # Componente raíz con routing
+    ├── index.css              # Estilos globales + Shadcn variables
+    ├── vite-env.d.ts          # Tipos de Vite
+    ├── components/
+    │   ├── ui/                # Componentes Shadcn UI
+    │   │   ├── button.tsx
+    │   │   ├── card.tsx
+    │   │   ├── input.tsx
+    │   │   ├── label.tsx
+    │   │   ├── select.tsx
+    │   │   └── textarea.tsx
+    │   ├── PropertyCard.tsx   # Tarjeta de propiedad
+    │   └── PropertyForm.tsx   # Formulario con validación
+    ├── pages/
+    │   ├── HomePage.tsx       # Lista con filtros
+    │   ├── NewPropertyPage.tsx # Crear propiedad
+    │   └── PropertyDetailPage.tsx # Detalle
+    ├── lib/
+    │   ├── utils.ts           # Utilidades (cn, formatters)
+    │   └── storage.ts         # Operaciones localStorage
+    ├── types/
+    │   └── property.ts        # Tipos y esquemas Zod
+    └── data/
+        └── sampleProperties.ts # Datos de ejemplo
+```
+
+---
+
+## Arquitectura
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              ARQUITECTURA                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│    ┌────────────────────────────────────────────────────────────────────┐   │
+│    │                           App.tsx                                   │   │
+│    │                    (Router + Layout)                                │   │
+│    └────────────────────────────────────────────────────────────────────┘   │
+│                                    │                                         │
+│          ┌─────────────────────────┼─────────────────────────┐              │
+│          ▼                         ▼                         ▼              │
+│    ┌───────────┐            ┌───────────┐            ┌───────────┐         │
+│    │ HomePage  │            │NewProperty│            │ Property  │         │
+│    │           │            │   Page    │            │DetailPage │         │
+│    └─────┬─────┘            └─────┬─────┘            └─────┬─────┘         │
+│          │                        │                        │                │
+│          ▼                        ▼                        │                │
+│    ┌───────────┐            ┌───────────┐                  │                │
+│    │ Property  │            │ Property  │                  │                │
+│    │   Card    │            │   Form    │                  │                │
+│    └───────────┘            └─────┬─────┘                  │                │
+│                                   │                        │                │
+│                                   ▼                        │                │
+│                             ┌───────────┐                  │                │
+│                             │   Zod     │                  │                │
+│                             │ Validation│                  │                │
+│                             └───────────┘                  │                │
+│                                                            │                │
+│    ┌───────────────────────────────────────────────────────┴───────────┐   │
+│    │                         storage.ts                                 │   │
+│    │                    (CRUD + localStorage)                           │   │
+│    └───────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Conceptos Clave
+
+### Validación con Zod
+
+| Característica           | Zod                        | TypeScript              |
+| ------------------------ | -------------------------- | ----------------------- |
+| Momento de validación    | Runtime (ejecución)        | Compile time            |
+| Datos de usuario         | ✅ Valida                  | ❌ No valida            |
+| Mensajes de error        | ✅ Personalizables         | ❌ Solo desarrollo      |
+| Inferencia de tipos      | ✅ z.infer<typeof schema>  | N/A                     |
+
+### Shadcn UI vs Librerías Tradicionales
+
+| Aspecto                  | Shadcn UI                  | MUI/Chakra              |
+| ------------------------ | -------------------------- | ----------------------- |
+| Instalación              | Copias el código           | npm install             |
+| Personalización          | Control total              | Override de temas       |
+| Bundle size              | Solo lo que usas           | Todo el paquete         |
+| Curva de aprendizaje     | Tailwind + Radix           | API propietaria         |
+
+---
+
+## Configuración y Ejecución
 
 ### Prerrequisitos
 
 - Node.js 20.19+ o 22.12+
 - npm 10+
-- **Backend corriendo en puerto 3002**
 
 ### Instalacion
 
 ```bash
-# Desde el directorio frontend/
+# Navegar al directorio del modulo
+cd web/module2-real-estate
+
+# Instalar dependencias
 npm install --legacy-peer-deps
 ```
 
 > **Nota sobre --legacy-peer-deps**: Este flag es necesario porque algunas dependencias
-> aun no declaran soporte para las versiones mas recientes de Vite 7 y TypeScript 5.9.
+> (como @tailwindcss/vite y typescript-eslint) aun no declaran soporte para las versiones
+> mas recientes de Vite 7 y TypeScript 5.9. El flag permite instalar las dependencias
+> ignorando conflictos de peer dependencies. En la practica, las dependencias funcionan
+> correctamente con estas versiones.
 
-### Comandos
+### Comandos Disponibles
 
 ```bash
 # Servidor de desarrollo (puerto 3001)
 npm run dev
 
-# Build de produccion
+# Verificar tipos de TypeScript
+npm run type-check
+
+# Ejecutar linter
+npm run lint
+
+# Formatear código
+npm run format
+
+# Build de producción
 npm run build
 
-# Type check
-npm run type-check
+# Previsualizar build de producción
+npm run preview
 ```
 
 ---
 
-## Uso
+## Datos de Ejemplo
 
-1. **Primero**, inicia el backend desde `../backend/`:
-   ```bash
-   cd ../backend
-   npm run dev
-   ```
+La aplicación incluye datos de ejemplo que se cargan automáticamente si localStorage está vacío. Incluyen:
 
-2. **Luego**, inicia el frontend:
-   ```bash
-   npm run dev
-   ```
-
-3. Abre http://localhost:3001 en tu navegador
+- 6 propiedades variadas (casas, apartamentos, locales, oficinas, terrenos)
+- Diferentes tipos de operación (venta y alquiler)
+- Múltiples ciudades (Madrid, Barcelona, Valencia, Sevilla)
+- Diversas amenidades
 
 ---
 
 ## Notas Educativas
 
-### Manejo de estados asincronos
+### Componentes Controlados vs No Controlados
 
-```typescript
-// Estado de carga para UX
-const [isLoading, setIsLoading] = useState(true);
+```tsx
+// Controlado: React controla el valor
+<input value={name} onChange={(e) => setName(e.target.value)} />
 
-useEffect(() => {
-  async function loadData() {
-    setIsLoading(true);
-    try {
-      const data = await getAllProperties();
-      setProperties(data);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-  void loadData();
-}, []);
+// No controlado: El DOM mantiene el valor (React Hook Form usa esto)
+<input {...register('name')} />
 ```
 
-### Errores de red
+### Patrón de Composición de Shadcn
 
-```typescript
-// Siempre manejar errores de fetch
-try {
-  const result = await createProperty(data);
-  if (result) navigate('/');
-} catch (error) {
-  alert('Error de conexion con el servidor');
-}
+```tsx
+// Los componentes se componen como bloques
+<Card>
+  <CardHeader>
+    <CardTitle>Título</CardTitle>
+    <CardDescription>Descripción</CardDescription>
+  </CardHeader>
+  <CardContent>Contenido</CardContent>
+  <CardFooter>Acciones</CardFooter>
+</Card>
 ```
+
+---
+
+## Experimentos Sugeridos
+
+1. **Favoritos**: Añade funcionalidad para marcar propiedades como favoritas
+2. **Ordenamiento**: Implementa ordenar por precio, fecha, área
+3. **Paginación**: Añade paginación a la lista de propiedades
+4. **Modo oscuro**: Implementa toggle de tema claro/oscuro
+5. **Edición**: Añade página para editar propiedades existentes
+
+---
+
+## Próximo Paso: Módulo 3
+
+En el Módulo 3, reemplazaremos localStorage con una API REST real usando:
+- Express.js como servidor
+- Prisma ORM con SQLite
+- Los mismos tipos de datos para compatibilidad
 
 ---
 
 ## Licencia
 
-Este proyecto es de uso educativo.
+Este proyecto es de uso educativo y fue creado como material de aprendizaje.
+
+---
+
+## Créditos
+
+> Este proyecto ha sido generado usando Claude Code y adaptado con fines educativos por Adrián Catalán.
