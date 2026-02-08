@@ -46,6 +46,20 @@ class MockMusicRepository : MusicRepository {
      */
     override fun getCategories(): List<Category> = categories
 
+    override fun toggleFavorite(songId: String) {  // aca se actualiza la lista con las canciones nuevas favs
+        categories = categories.map { category ->
+            category.copy(
+                songs = category.songs.map { song ->
+                    if (song.id == songId) {
+                        song.copy(isFavorite = !song.isFavorite)
+                    } else {
+                        song
+                    }
+                }
+            )
+        }
+    }
+
     /**
      * Busca una canción por su ID.
      *
@@ -86,7 +100,7 @@ class MockMusicRepository : MusicRepository {
          * colorSeed: Valores diferentes generan gradientes únicos.
          * Usamos valores espaciados para maximizar la variedad visual.
          */
-        private val categories = listOf(
+        private var categories = listOf(        // se cambia de val a var para poder reasignar la lista cuando cambie a favs
             // ==========================================
             // CATEGORÍA 1: Rock Classics
             // ==========================================

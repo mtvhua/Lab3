@@ -48,7 +48,8 @@ data class Song(
     val id: String,
     val title: String,
     val artist: String,
-    val colorSeed: Int // Usado para generar gradientes únicos en SongCoverMock
+    val colorSeed: Int, // Usado para generar gradientes únicos en SongCoverMock
+    val isFavorite: Boolean = false // para saber cuando una cancion es favorita
 )
 
 /**

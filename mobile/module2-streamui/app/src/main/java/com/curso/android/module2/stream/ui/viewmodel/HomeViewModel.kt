@@ -6,6 +6,7 @@ import com.curso.android.module2.stream.data.repository.MusicRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import com.curso.android.module2.stream.data.model.Song // para importar el Song y el id
 
 /**
  * ================================================================================
@@ -207,6 +208,11 @@ class HomeViewModel(
      * ```
      */
     fun refresh() {
+        loadCategories()
+    }
+
+    fun toggleFavorite(song: Song) { // para cambiar el estado mediante el repo
+        repository.toggleFavorite(song.id)
         loadCategories()
     }
 }
