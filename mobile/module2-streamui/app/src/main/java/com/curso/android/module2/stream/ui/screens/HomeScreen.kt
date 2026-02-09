@@ -32,8 +32,8 @@ import com.curso.android.module2.stream.ui.viewmodel.HomeUiState
 import com.curso.android.module2.stream.ui.viewmodel.HomeViewModel
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Star // La estrella rellena
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.foundation.layout.Box
@@ -304,7 +304,7 @@ private fun SongCard(
                 modifier = Modifier.align(Alignment.TopEnd)
             ) {
                 Icon(
-                    imageVector = if (song.isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    imageVector = if (song.isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                     contentDescription = "Favorite",
                     tint = if (song.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                 )

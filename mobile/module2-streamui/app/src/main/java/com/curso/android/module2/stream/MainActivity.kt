@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,7 +46,12 @@ import com.curso.android.module2.stream.ui.screens.SearchScreen
 import com.curso.android.module2.stream.ui.theme.StreamUITheme
 import org.koin.compose.koinInject
 import kotlin.reflect.KClass
-
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
+import com.curso.android.module2.stream.ui.navigation.HighlightsDestination
+import com.curso.android.module2.stream.ui.screens.HighlightsScreen
+import com.curso.android.module2.stream.ui.viewmodel.HomeViewModel
+import org.koin.compose.viewmodel.koinViewModel
 /**
  * ================================================================================
  * MAIN ACTIVITY - Punto de Entrada de la UI
@@ -147,16 +151,10 @@ fun getBottomNavItems(): List<BottomNavItem> {
             unselectedIcon = { Icons.Outlined.Home }
         ),
         BottomNavItem(
-            route = SearchDestination::class,
-            label = "Search",
-            selectedIcon = { Icons.Filled.Search },
-            unselectedIcon = { Icons.Outlined.Search }
-        ),
-        BottomNavItem(
-            route = LibraryDestination::class,
-            label = "Library",
-            selectedIcon = { libraryIcon },
-            unselectedIcon = { libraryIcon }
+            route = HighlightsDestination::class,
+            label = "Highlights",
+            selectedIcon = { Icons.Filled.Star },
+            unselectedIcon = { Icons.Outlined.StarBorder }
         )
     )
 }
@@ -220,6 +218,7 @@ fun StreamUIApp() {
      * Aquí inyectamos el repository para buscar canciones por ID.
      */
     val repository: MusicRepository = koinInject()
+    val viewModel: HomeViewModel = koinViewModel()
 
     /**
      * currentBackStackEntryAsState()
@@ -252,6 +251,7 @@ fun StreamUIApp() {
     val topBarTitle = when {
         currentDestination?.hasRoute(HomeDestination::class) == true -> "StreamUI"
         currentDestination?.hasRoute(SearchDestination::class) == true -> "Search"
+        currentDestination?.hasRoute(HighlightsDestination::class) == true -> "Highlights"
         currentDestination?.hasRoute(LibraryDestination::class) == true -> "Your Library"
         currentDestination?.hasRoute(PlayerDestination::class) == true -> "Now Playing"
         else -> "StreamUI"
@@ -334,6 +334,7 @@ fun StreamUIApp() {
                                         when (item.route) {
                                             HomeDestination::class -> HomeDestination
                                             SearchDestination::class -> SearchDestination
+                                            HighlightsDestination::class -> HighlightsDestination
                                             LibraryDestination::class -> LibraryDestination
                                             else -> HomeDestination
                                         }
@@ -477,6 +478,18 @@ fun StreamUIApp() {
                              * Vuelve al tab desde donde se abrió el Player.
                              */
                             navController.popBackStack()
+                        }
+                    )
+                }
+
+                composable<HighlightsDestination> { // aca agrego la pantalla para los highlights
+                    HighlightsScreen(
+                        viewModel = viewModel,
+                        onSongClick = { song ->
+                            navController.navigate(PlayerDestination(songId = song.id))
+                        },
+                        onFavoriteClick = { song ->
+                            viewModel.toggleFavorite(song)
                         }
                     )
                 }

@@ -66,6 +66,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 data object HomeDestination
 
+@Serializable // para las canciones favs
+data object HighlightsDestination
+
 /**
  * Destino: Pantalla de Búsqueda
  *
@@ -125,4 +128,5 @@ data object LibraryDestination
 @Serializable
 data class PlayerDestination(
     val songId: String
+
 )
